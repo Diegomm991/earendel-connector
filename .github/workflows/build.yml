@@ -1,0 +1,37 @@
+name: Build EarendelX Print Bridge
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: ⚙️ Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: 🔨 Build .NET 4.8 Executable
+        run: |
+          dotnet build EarendelXPrintBridge.csproj -c Release
+
+      - name: 📦 Package ZIP
+        shell: pwsh
+        run: |
+          $exe = "bin/Release/net48/EarendelX-PrintBridge.exe"
+          Copy-Item $exe -Destination "EarendelX-PrintBridge.exe"
+          Compress-Archive -Path "EarendelX-PrintBridge.exe" -DestinationPath "EarendelX-PrintBridge-Windows.zip" -Force
+
+      - name: 🚀 Update Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          gh release upload v1.0.0 "EarendelX-PrintBridge.exe" "EarendelX-PrintBridge-Windows.zip" --clobber

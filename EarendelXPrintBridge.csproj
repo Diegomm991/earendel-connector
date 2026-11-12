@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <AssemblyName>EarendelX-PrintBridge</AssemblyName>
+    <RootNamespace>EarendelXPrintBridge</RootNamespace>
+    <ApplicationIcon>icon.ico</ApplicationIcon>
+    <AssemblyTitle>EarendelX Print Bridge</AssemblyTitle>
+    <AssemblyProduct>EarendelX</AssemblyProduct>
+    <AssemblyCompany>Earendel</AssemblyCompany>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
+  </PropertyGroup>
+
+</Project>
