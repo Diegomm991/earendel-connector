@@ -8,7 +8,6 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Windows.Forms;
-using Microsoft.Win32;
 
 namespace EarendelXPrintBridge
 {
@@ -39,9 +38,6 @@ namespace EarendelXPrintBridge
 
                 Application.EnableVisualStyles();
                 Application.SetCompatibleTextRenderingDefault(false);
-
-                // Configurar inicio automático con Windows
-                RegisterStartup(true);
 
                 // Iniciar servidor local
                 StartServer();
@@ -79,15 +75,6 @@ namespace EarendelXPrintBridge
                 try { System.Diagnostics.Process.Start("https://earendelx.com"); } catch { }
             });
             menu.Items.Add(openWebItem);
-
-            var autoStartItem = new ToolStripMenuItem("Iniciar con Windows") { Checked = IsStartupRegistered() };
-            autoStartItem.Click += (s, e) =>
-            {
-                bool newState = !autoStartItem.Checked;
-                RegisterStartup(newState);
-                autoStartItem.Checked = newState;
-            };
-            menu.Items.Add(autoStartItem);
 
             menu.Items.Add(new ToolStripSeparator());
 
@@ -270,38 +257,6 @@ namespace EarendelXPrintBridge
             if (endQuote == -1) return "";
             return json.Substring(startQuote + 1, endQuote - startQuote - 1);
         }
-
-        private static bool IsStartupRegistered()
-        {
-            try
-            {
-                using (var key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run", false))
-                {
-                    return key?.GetValue("EarendelXPrintBridge") != null;
-                }
-            }
-            catch { return false; }
-        }
-
-        private static void RegisterStartup(bool enable)
-        {
-            try
-            {
-                using (var key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run", true))
-                {
-                    if (key == null) return;
-                    if (enable)
-                    {
-                        key.SetValue("EarendelXPrintBridge", $"\"{Application.ExecutablePath}\"");
-                    }
-                    else
-                    {
-                        key.DeleteValue("EarendelXPrintBridge", false);
-                    }
-                }
-            }
-            catch { }
-        }
     }
 
     public static class RawPrinterHelper
@@ -368,3 +323,4 @@ namespace EarendelXPrintBridge
         }
     }
 }
+
