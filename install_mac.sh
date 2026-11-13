@@ -9,33 +9,90 @@ echo ""
 APP_DIR="$HOME/.earendelx"
 mkdir -p "$APP_DIR"
 
-# 1. Desbloquear apps descargadas (quitar cuarentena de Apple Gatekeeper)
-echo "[1/4] Desbloqueando aplicaciones descargadas de EarendelX..."
-for target in \
-  "$HOME/Downloads/EarendelX.app" \
+MAC_ZIP_URL="https://github.com/Diegomm991/earendel-connector/releases/download/v1.0.0/EarendelX-macOS.zip"
+APP_DEST="/Applications/EarendelX.app"
+if [ ! -w "/Applications" ]; then
+  mkdir -p "$HOME/Applications"
+  APP_DEST="$HOME/Applications/EarendelX.app"
+fi
+
+# 1. Buscar, extraer, descargar si hace falta y desbloquear EarendelX.app (sin cuarentena)
+echo "[1/4] Preparando y desbloqueando aplicaciones de EarendelX..."
+
+# Si hay un .zip descargado en Downloads o Desktop sin descomprimir, extraerlo primero
+FOUND_APP=""
+for candidate in \
+  "$APP_DEST" \
   "/Applications/EarendelX.app" \
+  "$HOME/Applications/EarendelX.app" \
+  "$HOME/Downloads/EarendelX.app" \
+  "$HOME/Desktop/EarendelX.app"; do
+  if [ -d "$candidate" ]; then
+    FOUND_APP="$candidate"
+    break
+  fi
+done
+
+if [ -z "$FOUND_APP" ]; then
+  for zip_candidate in \
+    "$HOME/Downloads"/EarendelX-macOS*.zip \
+    "$HOME/Desktop"/EarendelX-macOS*.zip; do
+    if [ -f "$zip_candidate" ]; then
+      echo "  → Extrayendo paquete encontrado: $zip_candidate"
+      TEMP_EXTRACT="$(mktemp -d /tmp/earendelx_extract_XXXX)"
+      xattr -d com.apple.quarantine "$zip_candidate" 2>/dev/null || true
+      if ditto -x -k "$zip_candidate" "$TEMP_EXTRACT" 2>/dev/null && [ -d "$TEMP_EXTRACT/EarendelX.app" ]; then
+        rm -rf "$APP_DEST"
+        ditto "$TEMP_EXTRACT/EarendelX.app" "$APP_DEST"
+        FOUND_APP="$APP_DEST"
+      fi
+      rm -rf "$TEMP_EXTRACT"
+      [ -n "$FOUND_APP" ] && break
+    fi
+  done
+fi
+
+if [ -z "$FOUND_APP" ]; then
+  echo "  → Descargando EarendelX para macOS directamente sin bloqueo del navegador..."
+  TEMP_ZIP="$(mktemp /tmp/EarendelX-macOS-XXXX.zip)"
+  TEMP_EXTRACT="$(mktemp -d /tmp/earendelx_extract_XXXX)"
+  if curl -fSL "$MAC_ZIP_URL" -o "$TEMP_ZIP"; then
+    if ditto -x -k "$TEMP_ZIP" "$TEMP_EXTRACT" 2>/dev/null && [ -d "$TEMP_EXTRACT/EarendelX.app" ]; then
+      rm -rf "$APP_DEST"
+      ditto "$TEMP_EXTRACT/EarendelX.app" "$APP_DEST"
+      FOUND_APP="$APP_DEST"
+      echo "  ✓ Descargado en $APP_DEST"
+    fi
+  fi
+  rm -rf "$TEMP_ZIP" "$TEMP_EXTRACT"
+fi
+
+# Copiar a Applications si estaba en Downloads o Desktop
+if [ -n "$FOUND_APP" ] && [ "$FOUND_APP" != "$APP_DEST" ]; then
+  echo "  → Instalando EarendelX.app en $APP_DEST..."
+  rm -rf "$APP_DEST"
+  ditto "$FOUND_APP" "$APP_DEST" 2>/dev/null || true
+  if [ -d "$APP_DEST" ]; then
+    FOUND_APP="$APP_DEST"
+  fi
+fi
+
+# Quitar cuarentena y firmar todas las copias presentes
+for target in \
+  "$APP_DEST" \
+  "/Applications/EarendelX.app" \
+  "$HOME/Applications/EarendelX.app" \
+  "$HOME/Downloads/EarendelX.app" \
+  "$HOME/Desktop/EarendelX.app" \
   "$HOME/Downloads/Earendel X POS.app" \
   "/Applications/Earendel X POS.app" \
   "$HOME/Desktop/Earendel X POS.app"; do
   if [ -e "$target" ]; then
     xattr -cr "$target" 2>/dev/null || true
-    echo "  ✓ Cuarentena removida: $target"
+    codesign --force --deep --sign - "$target" 2>/dev/null || true
+    echo "  ✓ Desbloqueado y firmado: $target"
   fi
 done
-
-if [ -d "$HOME/Downloads/EarendelX.app" ] && [ ! -d "/Applications/EarendelX.app" ]; then
-  echo "  → Copiando EarendelX.app a /Applications..."
-  if ditto "$HOME/Downloads/EarendelX.app" "/Applications/EarendelX.app" 2>/dev/null; then
-    xattr -cr "/Applications/EarendelX.app" 2>/dev/null || true
-    codesign --force --deep --sign - "/Applications/EarendelX.app" 2>/dev/null || true
-    echo "  ✓ Instalado y firmado en /Applications/EarendelX.app"
-  else
-    codesign --force --deep --sign - "$HOME/Downloads/EarendelX.app" 2>/dev/null || true
-    echo "  ✓ Firmado en $HOME/Downloads/EarendelX.app"
-  fi
-elif [ -d "/Applications/EarendelX.app" ]; then
-  codesign --force --deep --sign - "/Applications/EarendelX.app" 2>/dev/null || true
-fi
 
 # 2. Instalar servicio ligero nativo de impresión local (usa /usr/bin/python3 + CUPS)
 echo "[2/4] Instalando puente de impresión local en 127.0.0.1:17864..."
@@ -412,9 +469,19 @@ if [ -w "/Applications" ]; then
   create_kiosk_app "/Applications/Earendel X POS.app" || true
 fi
 
+if [ -n "$FOUND_APP" ] && [ -d "$FOUND_APP" ]; then
+  echo "  → Abriendo EarendelX.app..."
+  open "$FOUND_APP" 2>/dev/null || open "/Applications/EarendelX.app" 2>/dev/null || open "$HOME/Downloads/EarendelX.app" 2>/dev/null || true
+elif [ -d "/Applications/EarendelX.app" ]; then
+  open "/Applications/EarendelX.app" 2>/dev/null || true
+elif [ -d "$HOME/Downloads/EarendelX.app" ]; then
+  open "$HOME/Downloads/EarendelX.app" 2>/dev/null || true
+fi
+
 echo ""
 echo "=================================================="
 echo "  ✓ Instalación completada en macOS"
 echo "  Vuelve a earendelx.com en Ajustes → Impresoras"
 echo "  y pulsa \"COMPROBAR SI YA ESTÁ ABIERTO\"."
 echo "=================================================="
+
