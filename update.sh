@@ -5,7 +5,7 @@ echo "🚀 Actualizando EarendelX a la última versión..."
 killall EarendelX 2>/dev/null || true
 rm -rf /Applications/EarendelX.app /tmp/EarendelX.zip
 
-curl -fSL "https://github.com/Diegomm991/earendel-connector/releases/download/v1.0.13/EarendelX-macOS.zip" -o /tmp/EarendelX.zip
+curl -fSL "https://github.com/Diegomm991/earendel-connector/releases/download/v1.0.14/EarendelX-macOS.zip" -o /tmp/EarendelX.zip
 
 ditto -x -k /tmp/EarendelX.zip /Applications
 xattr -cr /Applications/EarendelX.app
