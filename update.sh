@@ -6,7 +6,7 @@ killall EarendelX 2>/dev/null || true
 rm -f /tmp/EarendelX.zip
 
 # Descargar con barra de progreso y reintentos
-curl -# -fSL --retry 3 --retry-delay 2 "https://github.com/Diegomm991/earendel-connector/releases/download/v1.0.16/EarendelX-macOS.zip" -o /tmp/EarendelX.zip
+curl -# -fSL --retry 3 --retry-delay 2 "https://github.com/Diegomm991/earendel-connector/releases/download/v1.0.17/EarendelX-macOS.zip" -o /tmp/EarendelX.zip
 
 # Validar que el archivo zip existe y no está vacío (mínimo 40MB)
 if [ ! -s /tmp/EarendelX.zip ]; then
